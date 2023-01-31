@@ -6,7 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  updateProfile
 } from "firebase/auth";
 import app from "./firebase.init";
 import Button from "react-bootstrap/Button";
@@ -16,8 +17,9 @@ const auth = getAuth(app);
 function App() {
   const [registered, setRegistered] = useState(false);
   const [error, setError] = useState("");
-  const [validated, setValidated] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const handleEmailBlur = (e) => {
     setEmail(e.target.value);
@@ -25,17 +27,14 @@ function App() {
   const handlePasswordBlur = (e) => {
     setPassword(e.target.value);
   };
+  const handleNameBlur = (event)=>{
+     setName(event.target.value);
+  }
   const handleRegisteredChange = (e) => {
     setRegistered(e.target.checked);
   };
   const handleOnSubmit = (event) => {
-    const form = event.currentTarget;
     event.preventDefault();
-    if (form.checkValidity() === false) {
-      event.stopPropagation();
-      return;
-    }
-
     if (
       !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(
         password
@@ -46,8 +45,6 @@ function App() {
       );
       return;
     }
-
-    setValidated(true);
     setError("");
 
     if (registered) {
@@ -55,6 +52,7 @@ function App() {
         .then((res) => {
           const user = res.user;
           console.log(user);
+          setSuccess(true);
         })
         .catch((error) => {
           console.log(error);
@@ -68,6 +66,7 @@ function App() {
           setEmail("");
           setPassword("");
           verifyEmail();
+          updateName();
         })
         .catch((error) => {
           console.error(error);
@@ -77,6 +76,18 @@ function App() {
 
     event.preventDefault();
   };
+
+  const updateName = ()=>{
+    updateProfile(auth.currentUser, {
+      displayName:name
+    })
+    .then(()=>{
+      console.log('Profile Updated')
+    })
+    .catch(error=>{
+      setError(error.message);
+    })
+  }
   const verifyEmail = () =>{
     sendEmailVerification(auth.currentUser)
     .then(()=>{
@@ -98,7 +109,13 @@ function App() {
         <h1 className="text-info">
           Please {registered ? "Login" : "Register"}
         </h1>
-        <Form noValidate validated={validated} onSubmit={handleOnSubmit}>
+        <Form  onSubmit={handleOnSubmit}>
+
+        {!registered && <Form.Group className="mb-3" controlId="formBasicEmail">
+        <Form.Label>Your Name</Form.Label>
+        <Form.Control onBlur={handleNameBlur} type="text" placeholder="Enter Your Name"  required/>
+      </Form.Group>}
+
           <Form.Group className="mb-3" controlId="formBasicEmail">
             <Form.Label>Email address</Form.Label>
             <Form.Control
@@ -134,6 +151,7 @@ function App() {
               label="Already Registered?"
             />
           </Form.Group>
+          {success && <p className="text-success">Successfully Loged In</p>}
           <p className="text-danger">{error}</p>
           <Button variant="primary" type="submit">
             {registered ? "Login" : "Register"}
